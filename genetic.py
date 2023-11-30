@@ -4,12 +4,15 @@ import concurrent.futures
 
 import wrapper_funcs
 
-base = wrapper_funcs.import_center("SaoPaulo")
-left_border, right_border = wrapper_funcs.track_borders(base, 5)
+base = wrapper_funcs.get_essential_curves("berlin.csv")
+right_border, left_border,  = base['sp'], base['min_curv']
+base = base['center']
 
 # Defines para o algoritmo
 tam_populacao = 5
 desvio_inicial = 0.01
+pontos_pista = 10
+multithreading = False
 
 def criar_populacao_inicial():
     genes = np.zeros((tam_populacao, base.shape[0], 2))
@@ -47,24 +50,31 @@ def gerar_raceline(gene):
 
 genes = criar_populacao_inicial()
 best = {'gene': [], 'tempo' : np.inf}
-results = np.zeros(tam_populacao)
+results = [0 for i in range(tam_populacao)]
 
 while 1:
     print("-" * 50 + "")
-    racelines = np.array([])    
+    racelines = []    
     for i in genes:
-        racelines = np.append(racelines, gerar_raceline(i))
-
+        racelines.append(gerar_raceline(i))
+    racelines = np.array(racelines)
+    
     print(racelines.shape)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futuros = [executor.submit(wrapper_funcs.simulate_raceline, arg) for arg in racelines]
-        resultados = [f.result() for f in concurrent.futures.as_completed(futuros)]
+    
+    if multithreading:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futuros = [executor.submit(wrapper_funcs.simulate_raceline, arg) for arg in racelines]
+            resultados = [f.result() for f in concurrent.futures.as_completed(futuros)]
+    else:
+        resultados = []
+        for i in racelines:
+            resultados.append(wrapper_funcs.simulate_raceline(i))
 
-    print(resultados)
+    # print(resultados)
 
     for i in range(len(results)):
-        results[i] = ({"gene" : genes[i], "tempo" : resultados[i]})
+        results[i] = {"gene" : genes[i], "tempo" : resultados[i]}
 
     for i in range(len(results)):
         print(f"{i}/{tam_populacao} => tempo = {results[i]['tempo']}s")
@@ -72,6 +82,9 @@ while 1:
     sorted_results = sorted(results, key=itemgetter("tempo"))
     if (sorted_results[0]['tempo'] < best['tempo']):
         best = sorted_results[0]
+
+    # print(base[:,0:2])
+    # wrapper_funcs.plot_track(base[:,0:2], [gerar_raceline(best['gene'])])
     
     print(f"Melhor Tempo: {best['tempo']}")
     genes = reproduzir(best["gene"])

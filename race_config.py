@@ -32,7 +32,8 @@ track_opts = {"trackname": "Shanghai",
 # series:                   F1, FE
 # limit_braking_weak_side:  can be None, 'FA', 'RA', 'all' -> set if brake force potential should be determined
 #                           based on the weak (i.e. inner) side of the car, e.g. when braking into a corner
-# v_start:                  [m/s] velocity at start
+# v_start:                  [m/s] ve    wrapper_funcs.plot_track(base, [gerar_raceline(best['gene']))
+# velocity at start
 # find_v_start:             determine the real velocity at start
 # max_no_em_iters:          maximum number of iterations for EM recalculation
 # es_diff_max:              [J] stop criterion -> maximum difference between two solver runs
@@ -69,7 +70,7 @@ driver_opts = {"vel_subtr_corner": 0.5,
                 "yellow_throttle": 0.3,
                 "initial_energy": 4.0e6,
                 "em_strategy": "FCFB",
-                "use_recuperation": True,
+                "use_recuperation": False,
                 "use_lift_coast": False,
                 "lift_coast_dist": 10.0}
 
