@@ -361,7 +361,7 @@ if __name__ == "__main__":
 
     # --- IMPORT TRACK ---
     # load data from csv file
-    csv_data_temp = np.loadtxt(os.path.dirname(__file__) + '/berlin.csv',
+    csv_data_temp = np.loadtxt(os.path.dirname(__file__) + '/../input/tracks/Baseline.csv',
                                comments='#', delimiter=',')
 
     # get coords and track widths out of array
@@ -376,7 +376,8 @@ if __name__ == "__main__":
         reftrack = reftrack[200:600, :]
         coeffs_x, coeffs_y, M, normvec_norm = calc_splines(path=reftrack[:, 0:2],
                                                            psi_s=psi_s,
-                                                           psi_e=psi_e)
+                                                           psi_e=psi_e,
+                                                           use_dist_scaling=False)
 
         # extend norm-vec to same size of ref track (quick fix for testing only)
         normvec_norm = np.vstack((normvec_norm[0, :], normvec_norm))
