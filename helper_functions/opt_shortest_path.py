@@ -160,7 +160,7 @@ if __name__ == "__main__":
     import sys
     import matplotlib.pyplot as plt
     sys.path.append(os.path.dirname(__file__))
-    from calc_splines import calc_splines
+    # from calc_splines import calc_splines
     import matplotlib
     matplotlib.use('Qt5Agg')
 

@@ -12,7 +12,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(__file__))
 
-from calc_splines import calc_splines
+from helper_functions.calc_splines import calc_splines
 
 
 # Por algum motivo esse módulo de laptime sim só funciona com essa bagaça
