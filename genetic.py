@@ -76,7 +76,7 @@ if __name__ == '__main__':
     base = base['center']
 
     # TODO: Fazer um método melhor pra isso aqui
-    load_latest = False
+    load_latest = True
 
     prog_dic = import_save_data(track_name)
     if prog_dic == None or not load_latest:
