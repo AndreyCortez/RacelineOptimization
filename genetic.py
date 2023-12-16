@@ -105,10 +105,8 @@ if __name__ == '__main__':
 
     genes = criar_populacao_inicial()
     best = {}
-    if prog_dic['BEST_RUN'][-1] != []:
-        best = {'gene': prog_dic['BEST_RUN'][1], 'tempo' : prog_dic['BEST_RUN'][2]}
-    else:
-        best = {'gene': [], 'tempo' : np.inf}
+
+    best = {'gene': prog_dic['BEST_RUN'][1], 'tempo' : prog_dic['BEST_RUN'][2]}
     results = [0 for i in range(tam_populacao)]
 
     best['gene'] = np.array(best['gene'])
