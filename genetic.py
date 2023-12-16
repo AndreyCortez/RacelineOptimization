@@ -62,32 +62,34 @@ def gerar_raceline(gene):
 
 if __name__ == '__main__':
 
-    track_name = 'Austin'
+    track_name = 'Baseline'
 
 
-    base = wrapper_funcs.get_essential_curves('input/tracks/' + track_name + '.csv')
+    base = wrapper_funcs.get_track_data('input/tracks/' + track_name + '.csv')
+    base[:,:2] *= 2
+    # base = wrapper_funcs.filter_track(base)
+    base = wrapper_funcs.get_essential_curves(base)
+
     right_border, left_border,  = base['sp'], base['min_curv']
     mask = wrapper_funcs.get_intersection_mask(right_border, left_border)
     gene_size = mask[-1] + 1
     base = base['center']
 
     # TODO: Fazer um método melhor pra isso aqui
-    load_latest = True
+    load_latest = False
 
-    prog_dic = {}
-
-    if load_latest:
-        prog_dic = import_save_data(track_name)
-    else:
+    prog_dic = import_save_data(track_name)
+    if prog_dic == None or not load_latest:
         prog_dic = {
-            'BEST_RUN' : (
-                # iteration, gene, time
+            'BEST_RUN' : 
                 (0, [0 for i in range(gene_size)], np.inf)
-            ),
+            ,
+            'NEW_BESTS' : [(0, [0 for i in range(gene_size)], np.inf)],
             'RUN_HISTORY' :
             [
-                # (iteration, gene, time)
+                (0, np.inf)
             ]
+
         }
 
     data_atual = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -103,16 +105,16 @@ if __name__ == '__main__':
 
     genes = criar_populacao_inicial()
     best = {}
-    if prog_dic['BEST_RUN'] != []:
+    if prog_dic['BEST_RUN'][-1] != []:
         best = {'gene': prog_dic['BEST_RUN'][1], 'tempo' : prog_dic['BEST_RUN'][2]}
     else:
         best = {'gene': [], 'tempo' : np.inf}
     results = [0 for i in range(tam_populacao)]
 
     best['gene'] = np.array(best['gene'])
-    wrapper_funcs.plot_track(base[:,0:2], [gerar_raceline(best['gene']), left_border])
+    wrapper_funcs.plot_track(base[:,0:2], [right_border, left_border])
 
-    iterations = prog_dic['BEST_RUN'][0]
+    iterations = prog_dic['RUN_HISTORY'][-1][0]
 
     while 1:
         print(f"Iteration {iterations}")
@@ -141,16 +143,19 @@ if __name__ == '__main__':
 
         sorted_results = sorted(results, key=itemgetter("tempo"))
         new_best = False
+
         if (sorted_results[0]['tempo'] < best['tempo']):
             new_best = True
             best = sorted_results[0]
 
         print(f"Melhor Tempo: {best['tempo']}")
 
-        prog_dic['BEST_RUN'] = (iterations, list(best['gene']), best['tempo'])
-
         if new_best:
-            prog_dic['RUN_HISTORY'].append([iterations, list(best['gene']), best['tempo']])
+            prog_dic['BEST_RUN'] = (iterations, list(best['gene']), best['tempo'])
+            prog_dic['NEW_BESTS'].append([iterations, list(best['gene']), best['tempo']])
+
+
+        prog_dic['RUN_HISTORY'].append([iterations, [i['tempo'] for i in sorted_results]])
 
         if iterations % 5 == 0 :
             save_data(prog_dic, nome_arquivo)

@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import butter, lfilter, freqz
+
 
 import laptimesim
 from race_config import *
@@ -20,18 +22,28 @@ from helper_functions.calc_splines import calc_splines
 import matplotlib
 matplotlib.use('Qt5Agg')
 
+def get_track_data(trackfile):
+    csv_data_temp = np.loadtxt(os.path.dirname(__file__) + '/' + trackfile,
+                                comments='#', delimiter=',')
+    return csv_data_temp
 
-def get_essential_curves(trackfile, plot = False):
+# TODO: Fazer isso aqui
+def filter_track(track_data):
+    lista_original = track_data[:,2]
+    novos_pontos = np.linspace(np.min(lista_original), np.max(lista_original), len(lista_original) * 2)
+    lista_interpolada = np.interp(novos_pontos, range(len(lista_original)), lista_original)
+    print(lista_original)
+    print(lista_interpolada)
+
+
+    pass
+
+def get_essential_curves(track_data, plot = False):
     # --- PARAMETERS ---
     CLOSED = True
 
-    # --- IMPORT TRACK ---
-    # load data from csv file
-    csv_data_temp = np.loadtxt(os.path.dirname(__file__) + '/' + trackfile,
-                                comments='#', delimiter=',')
-
     # get coords and track widths out of array
-    reftrack = csv_data_temp[:, 0:4]
+    reftrack = track_data[:, 0:4]
     psi_s = 0.0
     psi_e = 2.0
 
