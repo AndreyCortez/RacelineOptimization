@@ -57,7 +57,7 @@ def gerar_raceline(gene):
     raceline = np.zeros((base.shape[0], 2))
     alpha = gene[mask]
     for i in range(len(raceline)):
-        raceline[i] = vetor_interpolado(left_border[i], right_border[i], alpha[i])
+        raceline[i] = vetor_interpolado(sp[i], mc[i], alpha[i])
     return np.array(raceline)
 
 if __name__ == '__main__':
@@ -70,13 +70,13 @@ if __name__ == '__main__':
     # base = wrapper_funcs.filter_track(base)
     base = wrapper_funcs.get_essential_curves(base)
 
-    right_border, left_border,  = base['sp'], base['min_curv']
-    mask = wrapper_funcs.get_intersection_mask(right_border, left_border)
+    sp, mc  = base['sp'], base['min_curv']
+    mask = wrapper_funcs.get_intersection_mask(mc, sp)
     gene_size = mask[-1] + 1
     base = base['center']
 
     # TODO: Fazer um método melhor pra isso aqui
-    load_latest = True
+    load_latest = False
 
     prog_dic = import_save_data(track_name)
     if prog_dic == None or not load_latest:
@@ -99,18 +99,18 @@ if __name__ == '__main__':
 
     # Defines para o algoritmo
     tam_populacao = 5
-    desvio_inicial = 0.1
-    pontos_pista = 10
+    desvio_inicial = 0.5
     multithreading = False
 
     genes = criar_populacao_inicial()
+    
     best = {}
 
     best = {'gene': prog_dic['BEST_RUN'][1], 'tempo' : prog_dic['BEST_RUN'][2]}
     results = [0 for i in range(tam_populacao)]
 
     best['gene'] = np.array(best['gene'])
-    wrapper_funcs.plot_track(base[:,0:2], [right_border, left_border])
+    wrapper_funcs.plot_track(base[:,0:2], [mc, sp])
 
     iterations = prog_dic['RUN_HISTORY'][-1][0]
 

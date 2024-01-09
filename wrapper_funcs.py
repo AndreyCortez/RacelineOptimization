@@ -121,18 +121,30 @@ def get_intersection_mask(path1, path2):
 
     return mask
 
+
+# NOTE: Defasada, posso apagar
 def encontrar_centro_circunferencia(ponto1, ponto2, ponto3):
     x1, y1 = ponto1
     x2, y2 = ponto2
     x3, y3 = ponto3
     
     denominador = 2 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2))
+    if denominador == 0:
+        denominador = 0.000001
     
-    h = ((x1**2 + y1**2) * (y2 - y3) + (x2**2 + y2**2) * (y3 - y1) + (x3**2 + y3**2) * (y1 - y2)) / denominador
-    k = ((x1**2 + y1**2) * (x3 - x2) + (x2**2 + y2**2) * (x1 - x3) + (x3**2 + y3**2) * (x2 - x1)) / denominador
+    h = ((x1**2 + y1**2) * (y2 - y3) + (x2**2 + y2**2) * (y3 - y1) + (x3**2 + y3**2) * (y1 - y2)) 
+    k = ((x1**2 + y1**2) * (x3 - x2) + (x2**2 + y2**2) * (x1 - x3) + (x3**2 + y3**2) * (x2 - x1)) 
 
-    return [h, k]
+    if h == 0:
+        h = 0.000001
 
+    if k == 0:
+        k = 0.000001
+
+    return [h / denominador, k / denominador]
+
+
+# NOTE: Defasada, posso apagar
 def orientacao_pontos(ponto1, ponto2, ponto3):
     x1, y1 = ponto1
     x2, y2 = ponto2
@@ -140,7 +152,7 @@ def orientacao_pontos(ponto1, ponto2, ponto3):
     
     return (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
 
-
+# NOTE: Defasada, posso apagar
 def track_borders(centro_da_pista, largura_pista):
     borda_esquerda = []
     borda_direita = []
@@ -168,6 +180,13 @@ def track_borders(centro_da_pista, largura_pista):
     borda_esquerda = np.array(borda_esquerda)
 
     return borda_esquerda, borda_direita
+
+def gerar_raceline(curva_1, curva_2, alpha):
+    mask = get_intersection_mask(curva_1, curva_2)
+    alpha = np.array(alpha)[mask]
+    alpha = np.column_stack((alpha, alpha))
+    vetor_interp = (1 - alpha) * curva_1 + alpha * curva_2
+    return vetor_interp
 
 
 # TODO: Ajeitar o TrackBorders pra plotar as bordas da pista msm
