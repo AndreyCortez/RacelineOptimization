@@ -110,7 +110,8 @@ if __name__ == '__main__':
     results = [0 for i in range(tam_populacao)]
 
     best['gene'] = np.array(best['gene'])
-    wrapper_funcs.plot_track(base[:,0:2], [mc, sp])
+
+    # wrapper_funcs.plot_track(base[:,0:2], [mc, sp])
 
     iterations = prog_dic['RUN_HISTORY'][-1][0]
 

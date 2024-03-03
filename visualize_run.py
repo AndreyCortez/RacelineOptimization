@@ -10,13 +10,14 @@ import wrapper_funcs
 track_name = 'Baseline'
 
 
-data = import_save_data(track_name)['NEW_BESTS']
-
 base = wrapper_funcs.get_track_data('input/tracks/' + track_name + '.csv')
 base[:,:2] *= 2
 # base[:,2:4] *= 2
 base = wrapper_funcs.get_essential_curves(base)
 mask = wrapper_funcs.get_intersection_mask(base['sp'], base['min_curv'])
+
+wrapper_funcs.plot_track(base, [base['sp']], 'Curva de Menor comprimento', True)
+wrapper_funcs.plot_track(base, [base['min_curv']], 'Curva de menor curvatura', True)
 
 # ---------------- Salva dados para serem usados no vídeo de explicação -----------------------------
 
@@ -24,6 +25,9 @@ mask = wrapper_funcs.get_intersection_mask(base['sp'], base['min_curv'])
 # np.savetxt('Baseline.txt', save)
 
 # ---------------------------------------------------------------------------------------------------
+
+
+data = import_save_data(track_name)['NEW_BESTS']
 
 sp, mc  = base['sp'], base['min_curv']
 

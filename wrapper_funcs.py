@@ -97,10 +97,12 @@ def get_essential_curves(track_data, plot = False):
             }
 
 
-# TODO: implementar essa função
-def get_raceline(path1, path2, alpha):
-    pass
-
+def gerar_raceline(curva_1, curva_2, alpha):
+    mask = get_intersection_mask(curva_1, curva_2)
+    alpha = np.array(alpha)[mask]
+    alpha = np.column_stack((alpha, alpha))
+    vetor_interp = (1 - alpha) * curva_1 + alpha * curva_2
+    return vetor_interp
 
 # NOTE: Talvez fazer a primeira mascara e a mascara final serem o mesmo número ajude a acabar com os erros
 # dos infs
@@ -122,95 +124,45 @@ def get_intersection_mask(path1, path2):
     return mask
 
 
-# NOTE: Defasada, posso apagar
-def encontrar_centro_circunferencia(ponto1, ponto2, ponto3):
-    x1, y1 = ponto1
-    x2, y2 = ponto2
-    x3, y3 = ponto3
-    
-    denominador = 2 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2))
-    if denominador == 0:
-        denominador = 0.000001
-    
-    h = ((x1**2 + y1**2) * (y2 - y3) + (x2**2 + y2**2) * (y3 - y1) + (x3**2 + y3**2) * (y1 - y2)) 
-    k = ((x1**2 + y1**2) * (x3 - x2) + (x2**2 + y2**2) * (x1 - x3) + (x3**2 + y3**2) * (x2 - x1)) 
+def track_borders(base):
+    coeffs_x, coeffs_y, M, normvec_norm = calc_splines(path=np.vstack((base['center'][:, 0:2], base['center'][0, 0:2])))
 
-    if h == 0:
-        h = 0.000001
+    bound1 = base['center'][:, 0:2] - normvec_norm * np.expand_dims(base['center'][:, 2], axis=1)
+    bound2 = base['center'][:, 0:2] + normvec_norm * np.expand_dims(base['center'][:, 3], axis=1)
 
-    if k == 0:
-        k = 0.000001
+    return bound1, bound2
 
-    return [h / denominador, k / denominador]
+def plot_track(base, racelines = [], title = 'Mapa da Pista', flip_axis = False):
 
-
-# NOTE: Defasada, posso apagar
-def orientacao_pontos(ponto1, ponto2, ponto3):
-    x1, y1 = ponto1
-    x2, y2 = ponto2
-    x3, y3 = ponto3
-    
-    return (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
-
-# NOTE: Defasada, posso apagar
-def track_borders(centro_da_pista, largura_pista):
-    borda_esquerda = []
-    borda_direita = []
-
-    count = 0
-    for x, y in centro_da_pista:
-        x1 = centro_da_pista[count-2]
-        x2 = centro_da_pista[count-1]
-        x3 = centro_da_pista[count]
-        circ_centro = encontrar_centro_circunferencia(x1, x2, x3)
-        vetr_central = centro_da_pista[count] - circ_centro
-        
-        vetr_central = vetr_central / np.linalg.norm(vetr_central)
-        count += 1
-
-        
-        if orientacao_pontos(x1, x2, x3) > 0:
-            borda_esquerda.append([x + vetr_central[0] * largura_pista, y + vetr_central[1] * largura_pista])
-            borda_direita.append([x - vetr_central[0] * largura_pista, y - vetr_central[1] * largura_pista])
-        else:
-            borda_esquerda.append([x - vetr_central[0] * largura_pista, y - vetr_central[1] * largura_pista])
-            borda_direita.append([x + vetr_central[0] * largura_pista, y + vetr_central[1] * largura_pista])
-
-    borda_direita = np.array(borda_direita)
-    borda_esquerda = np.array(borda_esquerda)
-
-    return borda_esquerda, borda_direita
-
-def gerar_raceline(curva_1, curva_2, alpha):
-    mask = get_intersection_mask(curva_1, curva_2)
-    alpha = np.array(alpha)[mask]
-    alpha = np.column_stack((alpha, alpha))
-    vetor_interp = (1 - alpha) * curva_1 + alpha * curva_2
-    return vetor_interp
-
-
-# TODO: Ajeitar o TrackBorders pra plotar as bordas da pista msm
-def plot_track(track, racelines = []):
-    x, y = zip(*(track))
-    be, bd = track_borders(track, 5)    
+    x, y = base['center'][:,0], base['center'][:,1]
+    be, bd = track_borders(base)
     x_1, y_1 = zip(*(be))
     x_2, y_2 = zip(*(bd))
     
     #TODO: trocar o linewidths por track.width
-    plt.plot(x, y, marker='', color = "gray", linestyle = '--', linewidth = 1)
-    plt.plot(x_1, y_1, color = "gray", linewidth = 1)
-    plt.plot(x_2, y_2, color = "gray", linewidth = 1)
+    if not flip_axis:
+        plt.plot(x, y, marker='', color = "gray", linestyle = '--', linewidth = 1)
+        plt.plot(x_1, y_1, color = "gray", linewidth = 1)
+        plt.plot(x_2, y_2, color = "gray", linewidth = 1)
+    else:
+        plt.plot(y, x, marker='', color = "gray", linestyle = '--', linewidth = 1)
+        plt.plot(y_1, x_1, color = "gray", linewidth = 1)
+        plt.plot(y_2, x_2, color = "gray", linewidth = 1)
+    
 
     for i in racelines:
         x, y = zip(*i)
-        plt.plot(x, y, marker='')
+        if not flip_axis:
+            plt.plot(x, y, marker='')
+        else: 
+            plt.plot(y, x, marker='')
 
     plt.axis('equal')
 
     plt.xlabel('Eixo X')
     plt.ylabel('Eixo Y')
 
-    plt.title('Mapa da pista')
+    plt.title(title)
 
     plt.show()
 
@@ -227,7 +179,6 @@ def simulate_raceline(raceline):
 
     parfilepath = os.path.join(repo_path, "input", "track_pars.ini")
 
-    # set velocity limit
     if driver_opts["vel_lim_glob"] is not None:
         vel_lim_glob = driver_opts["vel_lim_glob"]
     elif solver_opts["series"] == "FE":
@@ -235,7 +186,6 @@ def simulate_raceline(raceline):
     else:
         vel_lim_glob = np.inf
 
-    # create instance
     track = laptimesim.src.track.Track(pars_track=track_opts,
                                        parfilepath=parfilepath,
                                        track = raceline,
@@ -246,7 +196,6 @@ def simulate_raceline(raceline):
 
     parfilepath = os.path.join(repo_path, "input", "vehicles", solver_opts["vehicle"])
 
-    # create instance
     if solver_opts["series"] == "F1":
         car = laptimesim.src.car_hybrid.CarHybrid(parfilepath=parfilepath)
     elif solver_opts["series"] == "FE":
@@ -254,32 +203,16 @@ def simulate_raceline(raceline):
     else:
         raise IOError("Unknown racing series!")
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # CREATE DRIVER INSTANCE -------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------------------
-
     driver = laptimesim.src.driver.Driver(carobj=car,
                                           pars_driver=driver_opts,
                                           trackobj=track,
                                           stepsize=track.stepsize)
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # CREATE LAP INSTANCE ----------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------------------
 
     lap = laptimesim.src.lap.Lap(driverobj=driver,
                                  trackobj=track,
                                  pars_solver=solver_opts,
                                  debug_opts=debug_opts)
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # CALL SOLVER ------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------------------
-
-    # save start time
-    # t_start = time.perf_counter()
-
-    # call simulation
     try:
         lap.simulate_lap()
     except:
