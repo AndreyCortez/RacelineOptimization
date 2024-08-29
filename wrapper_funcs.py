@@ -98,7 +98,7 @@ def get_essential_curves(track_data, plot = False):
 
 
 def gerar_raceline(curva_1, curva_2, alpha):
-    mask = get_intersection_mask(curva_1, curva_2)
+    mask = get_intersection_interpolation_mask(curva_1, curva_2)
     alpha = np.array(alpha)[mask]
     alpha = np.column_stack((alpha, alpha))
     vetor_interp = (1 - alpha) * curva_1 + alpha * curva_2
@@ -106,7 +106,7 @@ def gerar_raceline(curva_1, curva_2, alpha):
 
 # NOTE: Talvez fazer a primeira mascara e a mascara final serem o mesmo número ajude a acabar com os erros
 # dos infs
-def get_intersection_mask(path1, path2):
+def get_intersection_interpolation_mask(path1, path2):
     intersection_indices = np.where(np.linalg.norm(path1 - path2, axis=1) < 0.01)
     aux = intersection_indices[0]
     intersection_indices = np.where(np.linalg.norm(path1[intersection_indices] - np.roll(path1[intersection_indices], 1, axis=0), axis=1) > 2)
@@ -122,6 +122,42 @@ def get_intersection_mask(path1, path2):
             cnt += 1
 
     return mask
+
+def convert_mask(mask, new_size):
+    repeticoes = new_size // len(mask)
+    novo_vetor = np.repeat(mask, repeticoes)
+    novo_vetor = np.concatenate((novo_vetor, mask[:new_size % len(mask)]))
+    return novo_vetor
+
+
+def get_step_interpolation_mask(center_line, step_size):
+    diff = np.diff(center_line, axis=0)
+    len_seg = np.linalg.norm(diff, axis=1)
+    len_curv = np.sum(len_seg)
+
+    # print(len_curv)
+    
+    discrete_step_size = (len(center_line) * step_size / len_curv)
+    intersection_indices = range(int(len_curv / step_size))
+
+    # print(discrete_step_size)
+    # print(intersection_indices)
+    # print(len(center_line))
+
+    cnt = 0
+    mask = []
+    for i in range(len(center_line)):        
+        mask.append(intersection_indices[int(cnt/discrete_step_size)])
+        cnt += 1
+    
+    value = mask[0]
+    for i in range(len(mask)):
+        if mask[i] == value:
+            mask[i] = mask[-1]
+    
+    # print(mask)
+
+    return np.array(mask)
 
 
 def track_borders(base):

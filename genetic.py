@@ -36,16 +36,31 @@ def criar_populacao_inicial():
     genes = np.zeros((tam_populacao, gene_size))
 
     for i in genes:
-        i += (np.random.random() * 2 - 1) * desvio_inicial
-    genes = np.clip(genes, 0, 1)
+        i += np.random.random(gene_size) #- (np.random.random()) * desvio_inicial
+
+
+    genes = np.clip(genes, 0.0, 1.0, dtype=float)
+    pesos = np.array(pesos_suavizacao, dtype=float)
+    pesos_normalizados =  pesos / np.sum(pesos)
+
+    for i in range(len(genes)):
+        genes[i] = np.convolve(genes[i], pesos_normalizados, mode='full')[:len(genes[i])]
+    
     return genes
 
 def reproduzir(gene_escolhido):
     genes = np.zeros((tam_populacao, gene_size))
 
     for i in genes:
-        i += gene_escolhido + (np.random.random(gene_size) * 2 - 1) * desvio_inicial
-    genes = np.clip(genes, 0, 1)
+        i += gene_escolhido + (np.random.random(gene_size) * 2 - 1) * fator_mutacao_aux
+    
+    genes = np.clip(genes, 0.0, 1.0, dtype=float)
+    pesos = np.array(pesos_suavizacao, dtype=float)
+    pesos_normalizados =  pesos / np.sum(pesos)
+
+    for i in range(len(genes)):
+        genes[i] = np.convolve(genes[i], pesos_normalizados, mode='full')[:len(genes[i])]
+    
     return genes
 
 def vetor_interpolado(vetor1, vetor2, t):
@@ -53,8 +68,10 @@ def vetor_interpolado(vetor1, vetor2, t):
     vetor_interpolado = (1 - t) * vetor1 + t * vetor2
     return vetor_interpolado
 
-def gerar_raceline(gene):
-    raceline = np.zeros((base.shape[0], 2))
+def gerar_raceline(gene, mask, sp, mc):
+    gene = np.array(gene)
+    # mask = np.array(mask)
+    raceline = np.zeros((len(mask), 2))
     alpha = gene[mask]
     for i in range(len(raceline)):
         raceline[i] = vetor_interpolado(sp[i], mc[i], alpha[i])
@@ -71,9 +88,11 @@ if __name__ == '__main__':
     base = wrapper_funcs.get_essential_curves(base)
 
     sp, mc  = base['sp'], base['min_curv']
-    mask = wrapper_funcs.get_intersection_mask(mc, sp)
+    # mask = wrapper_funcs.get_intersection_interpolation_mask(mc, sp)
+    mask = wrapper_funcs.get_step_interpolation_mask(base['center'][:,:2], 3.0)
     gene_size = mask[-1] + 1
-    base = base['center']
+    mask_size = len(mask) 
+    # base = base['center']
 
     # TODO: Fazer um método melhor pra isso aqui
     load_latest = False
@@ -82,7 +101,7 @@ if __name__ == '__main__':
     if prog_dic == None or not load_latest:
         prog_dic = {
             'BEST_RUN' : 
-                (0, [0 for i in range(gene_size)], np.inf)
+                (0, [1.0 for i in range(gene_size)], np.inf)
             ,
             'NEW_BESTS' : [(0, [0 for i in range(gene_size)], np.inf)],
             'RUN_HISTORY' :
@@ -98,9 +117,24 @@ if __name__ == '__main__':
     prog_dic = import_save_data(track_name)
 
     # Defines para o algoritmo
-    tam_populacao = 5
-    desvio_inicial = 0.5
+    tam_populacao = 10
+    
+    fator_mutacao = 0.01
+    fator_mutacao_aux = fator_mutacao
     multithreading = False
+
+
+    exploracao_maximo = 3
+    exploracao_procura = 100
+
+    exploracao_incremento_cnt = 1
+    exploracao_procura_cnt = 0
+
+
+    #NOTE: ISSO AQUI NÂO FUNCIONA!!!!!!!!!!
+    fator_suavizacao = 1
+    janela_suavizacao = 1
+    pesos_suavizacao = ([1/fator_suavizacao ** i for i in range(janela_suavizacao)])
 
     genes = criar_populacao_inicial()
     
@@ -110,6 +144,7 @@ if __name__ == '__main__':
     results = [0 for i in range(tam_populacao)]
 
     best['gene'] = np.array(best['gene'])
+    print(best['gene'])
 
     # wrapper_funcs.plot_track(base[:,0:2], [mc, sp])
 
@@ -121,7 +156,7 @@ if __name__ == '__main__':
         iterations += 1
         racelines = []    
         for i in genes:
-            racelines.append(gerar_raceline(i))
+            racelines.append(gerar_raceline(i, mask, sp, mc))
         racelines = np.array(racelines)
 
         
@@ -149,9 +184,20 @@ if __name__ == '__main__':
 
         print(f"Melhor Tempo: {best['tempo']}")
 
+        exploracao_procura_cnt += 1
+
         if new_best:
             prog_dic['BEST_RUN'] = (iterations, list(best['gene']), best['tempo'])
             prog_dic['NEW_BESTS'].append([iterations, list(best['gene']), best['tempo']])
+            exploracao_incremento_cnt = 1
+        
+        if exploracao_procura_cnt > exploracao_procura:
+            exploracao_incremento_cnt += 1
+            exploracao_procura_cnt = 0
+        
+        if exploracao_incremento_cnt > exploracao_maximo:
+            exploracao_incremento_cnt = 1
+            exploracao_procura_cnt = 0
 
 
         prog_dic['RUN_HISTORY'].append([iterations, [i['tempo'] for i in sorted_results]])
@@ -160,5 +206,8 @@ if __name__ == '__main__':
             save_data(prog_dic, nome_arquivo)
 
 
+        fator_mutacao_aux = fator_mutacao * exploracao_incremento_cnt
+        print(f"Fator de Mutação : {fator_mutacao_aux}")
         genes = reproduzir(best["gene"])
+        # wrapper_funcs.plot_track(base, racelines)
 
