@@ -180,3 +180,10 @@ def plot_track_subplot(plot_data):
 
 train_losses, val_losses, plot_data = train_model(model, criterion, optimizer, train_X, train_Y, test_X, test_Y, epochs=900, plot_interval=100)
 plot_track_subplot(plot_data)
+plot_track_subplot([plot_data[-1]])
+
+for i in range(len(test_X)):
+    y = model(test_X[i])
+    os.mkdir(f'./comparison_data/track{i}')
+    np.savetxt(f'comparison_data/track{i}/comparison_expected.csv', test_Y[i].numpy())
+    np.savetxt(f'comparison_data/track{i}/comparison_obtained.csv', y[0].detach().numpy())
