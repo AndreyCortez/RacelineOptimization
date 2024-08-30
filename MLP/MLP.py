@@ -5,6 +5,7 @@ from scipy.interpolate import CubicSpline
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import math
 
 class MLP(nn.Module):
     def __init__(self):
@@ -85,9 +86,56 @@ test_Y = torch.tensor(test_Y, dtype=torch.float32)
 def euclidean_distance(pred, target):
     return torch.sqrt(torch.sum((pred - target) ** 2, dim=2)).mean()
 
-def train_model(model, criterion, optimizer, train_data, train_targets, test_data, test_targets, epochs=100):
+def plot_track(track, line_real, line_predicted, num_points=1000):
+    def calcular_normais(curva):
+        normais = []
+        for i in range(len(curva) - 1):
+            tangente = np.array(curva[i+1]) - np.array(curva[i])
+            normal = np.array([-tangente[1], tangente[0]])
+            normal = normal / np.linalg.norm(normal)
+            normais.append(normal)
+        
+        return np.array(normais)
+    
+    # Interpolação para suavizar as curvas
+    sample = np.linspace(0.0, 1.0, track.shape[0])
+    smooth_sample = np.linspace(0.0, 1.0, num_points)
+    
+    cs_x = CubicSpline(sample, track[:, 0])
+    cs_y = CubicSpline(sample, track[:, 1])
+    cs_r = CubicSpline(sample, track[:, 2])
+    cs_l = CubicSpline(sample, track[:, 3])
+    
+    smooth_track = np.array([[cs_x(i), cs_y(i), cs_r(i), cs_l(i)] for i in smooth_sample])
+    
+    # Recalcular as bordas com a curva suavizada
+    normal = calcular_normais(smooth_track[:, 0:2])
+    bound1 = smooth_track[:-1, 0:2] + normal * np.expand_dims(smooth_track[:-1, 2], axis=1)
+    bound2 = smooth_track[:-1, 0:2] - normal * np.expand_dims(smooth_track[:-1, 3], axis=1)
+    
+    # Interpolação para a linha real e a linha prevista
+    cs_real_x = CubicSpline(sample, line_real[:, 0])
+    cs_real_y = CubicSpline(sample, line_real[:, 1])
+    cs_pred_x = CubicSpline(sample, line_predicted[:, 0])
+    cs_pred_y = CubicSpline(sample, line_predicted[:, 1])
+    
+    smooth_real = np.array([[cs_real_x(i), cs_real_y(i)] for i in smooth_sample])
+    smooth_pred = np.array([[cs_pred_x(i), cs_pred_y(i)] for i in smooth_sample])
+    
+    # Plotagem
+    plt.plot(smooth_track[:, 0], smooth_track[:, 1], label='Pista', color='gray', linestyle='--', linewidth=0.7)
+    plt.plot(bound1[:, 0], bound1[:, 1], color='gray', linewidth=0.7)
+    plt.plot(bound2[:, 0], bound2[:, 1], color='gray', linewidth=0.7)
+    
+    plt.plot(smooth_real[:, 0], smooth_real[:, 1], label='Linha Real', color='blue', linestyle='-', linewidth=0.7)
+    plt.plot(smooth_pred[:, 0], smooth_pred[:, 1], label='Linha Prevista', color='red', linestyle='-', linewidth=1)
+
+    plt.grid(True)
+
+def train_model(model, criterion, optimizer, train_data, train_targets, test_data, test_targets, epochs=500, plot_interval=100):
     train_losses = []
     val_losses = []
+    plot_data = []  # Armazena os dados para plotar no final
     
     model.train()
     for epoch in range(epochs):
@@ -110,28 +158,25 @@ def train_model(model, criterion, optimizer, train_data, train_targets, test_dat
 
         print(f'Epoch {epoch+1}/{epochs}, Training Loss: {loss.item()}, Validation Euclidean Distance: {val_loss.item()}')
 
-    return train_losses, val_losses
+        # Armazenar as previsões para plotagem
+        if (epoch + 1) % plot_interval == 0:
+            plot_data.append((epoch + 1, test_X[0].numpy(), test_Y[0].numpy(), test_outputs[0].detach().numpy()))
 
-train_losses, val_losses = train_model(model, criterion, optimizer, train_X, train_Y, test_X, test_Y, epochs=300)
+    return train_losses, val_losses, plot_data
 
-# Plotagem dos gráficos de Loss e Validation Euclidean Distance por época em gráficos separados
+def plot_track_subplot(plot_data):
+    num_plots = len(plot_data)
+    rows = cols = math.ceil(math.sqrt(num_plots))  # Arranjo mais próximo de um quadrado
+    
+    plt.figure(figsize=(10, 10))
+    
+    for i, (epoch, track, line_real, line_predicted) in enumerate(plot_data):
+        plt.subplot(rows, cols, i + 1)
+        plot_track(track, line_real, line_predicted)
+        plt.title(f'Epoch {epoch}')
+    
+    plt.tight_layout()
+    plt.show()
 
-# Gráfico de Training Loss
-plt.figure(figsize=(10, 5))
-plt.plot(train_losses, label='Training Loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.title('Training Loss per Epoch')
-plt.legend()
-plt.grid(True)
-plt.show()
-
-# Gráfico de Validation Euclidean Distance
-plt.figure(figsize=(10, 5))
-plt.plot(val_losses, label='Validation Euclidean Distance')
-plt.xlabel('Epochs')
-plt.ylabel('Euclidean Distance')
-plt.title('Validation Euclidean Distance per Epoch')
-plt.legend()
-plt.grid(True)
-plt.show()
+train_losses, val_losses, plot_data = train_model(model, criterion, optimizer, train_X, train_Y, test_X, test_Y, epochs=900, plot_interval=100)
+plot_track_subplot(plot_data)
